@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0f766e">
+    <title>Spalatorie Auto cu Preluare MVP</title>
+    <link rel="manifest" href="manifest.json">
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIINfQ0KZfpIcpuyd9HU7F4j1iG2C1c9hWw="
+      crossorigin=""
+    >
+    <link rel="stylesheet" href="src/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">SC</div>
+          <div>
+            <strong>Spalatorie Auto</strong>
+            <span>MVP pilot Timisoara</span>
+          </div>
+        </div>
+
+        <nav class="role-nav" aria-label="Roluri aplicatie">
+          <button class="nav-button active" data-view="client" type="button">
+            <span aria-hidden="true">C</span>
+            Client
+          </button>
+          <button class="nav-button" data-view="courier" type="button">
+            <span aria-hidden="true">K</span>
+            Operator
+          </button>
+          <button class="nav-button" data-view="admin" type="button">
+            <span aria-hidden="true">A</span>
+            Admin
+          </button>
+          <button class="nav-button" data-view="partner" type="button">
+            <span aria-hidden="true">S</span>
+            Spalatorie
+          </button>
+        </nav>
+
+        <div class="sidebar-panel">
+          <span class="label">Operare azi</span>
+          <strong id="todayOrders">0 comenzi</strong>
+          <p>Flux demo cu documente, acord de risc, harta si date persistate local.</p>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Web + mobile-ready MVP</p>
+            <h1 id="viewTitle">Comanda spalare cu preluare</h1>
+          </div>
+          <div class="status-chip">
+            <span class="pulse"></span>
+            Timisoara live demo
+          </div>
+        </header>
+
+        <section id="clientView" class="view active-view" aria-labelledby="clientTitle">
+          <div class="client-hero">
+            <div>
+              <p class="eyebrow">Solicitari</p>
+              <h2>Salut, bucura-te de timpul tau.</h2>
+              <p>Alege spalare cu preluare sau solicita returnarea masinii acasa in siguranta.</p>
+            </div>
+            <div class="client-wallet">
+              <span>Portofel demo</span>
+              <strong>30 lei</strong>
+              <span>Plata securizata prin NETOPIA</span>
+            </div>
+          </div>
+
+          <div class="account-panel">
+            <div>
+              <p class="eyebrow">Cont client</p>
+              <h2>Autentificare si masini salvate</h2>
+              <p class="legal-note">MVP demo: Gmail/iCloud sunt simulate. In productie se foloseste OAuth/OIDC real si backend securizat.</p>
+            </div>
+            <div class="auth-actions">
+              <button class="compact-action" type="button" data-auth-provider="gmail">Continua cu Gmail</button>
+              <button class="compact-action" type="button" data-auth-provider="icloud">Continua cu iCloud</button>
+            </div>
+            <form id="emailLoginForm" class="email-login">
+              <input name="loginEmail" type="email" placeholder="email@example.com" value="andrei@example.com" required>
+              <input name="loginPassword" type="password" placeholder="parola demo" value="parola-demo" required>
+              <button class="primary-action" type="submit">Login email</button>
+            </form>
+            <div id="accountSummary" class="account-summary"></div>
+          </div>
+
+          <div class="service-mode-grid">
+            <label class="service-mode-card">
+              <input name="serviceMode" type="radio" value="wash" checked>
+              <strong>Spalare cu preluare</strong>
+              <span>Operatorul preia masina, o duce la spalatorie si o returneaza cu video la predare.</span>
+            </label>
+            <label class="service-mode-card">
+              <input name="serviceMode" type="radio" value="safe_ride_home">
+              <strong>Du masina acasa</strong>
+              <span>Pentru momente cand e mai sigur sa nu conduci. Fara transport pasageri, doar vehiculul.</span>
+            </label>
+          </div>
+
+          <div class="content-grid">
+            <form id="orderForm" class="panel form-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Client</p>
+                  <h2 id="clientTitle">Creeaza comanda</h2>
+                </div>
+                <span class="badge">Documente obligatorii</span>
+              </div>
+
+              <div id="savedVehicles" class="saved-vehicles"></div>
+
+              <label>
+                Nume client
+                <input name="clientName" autocomplete="name" required value="Andrei Popescu">
+              </label>
+
+              <label>
+                Telefon
+                <input name="phone" inputmode="tel" required value="+40 721 000 111">
+              </label>
+
+              <label>
+                Nume proprietar vehicul conform talon
+                <input name="ownerName" id="ownerName" autocomplete="name" required value="Andrei Popescu">
+              </label>
+
+              <section id="safeRideNotice" class="subsection safe-ride-notice">
+                <div class="subsection-heading">
+                  <div>
+                    <p class="eyebrow">Serviciu siguranta</p>
+                    <h3>Du masina acasa</h3>
+                  </div>
+                  <span class="status-pill" data-tone="amber">Dispatcher monitorizat</span>
+                </div>
+                <label class="checkbox-line">
+                  <input name="safeNoDrive" type="checkbox">
+                  Confirm ca nu voi conduce masina si solicit doar transportul vehiculului la adresa aleasa.
+                </label>
+                <label class="checkbox-line">
+                  <input name="safeNoPassengers" type="checkbox">
+                  Inteleg ca serviciul nu transporta pasageri; operatorul conduce doar masina catre destinatie.
+                </label>
+                <label>
+                  Adresa predare masina
+                  <input name="safeDropoffAddress" value="Str. Timis nr. 20, Timisoara">
+                </label>
+                <p class="legal-note">Pentru acest mod raman obligatorii plata NETOPIA, documentele, acordul legal, video la preluare si video la predare.</p>
+              </section>
+
+              <div class="split">
+                <label>
+                  Masina
+                  <input name="vehicle" required value="BMW Seria 3">
+                </label>
+                <label>
+                  Numar
+                  <input name="plate" id="plateInput" required value="TM 12 WSH">
+                </label>
+              </div>
+
+              <div class="split">
+                <label>
+                  Zona preluare
+                  <select name="pickupZone" id="pickupZone" required>
+                    <option value="cetate">Cetate / Piata Unirii</option>
+                    <option value="fabric">Fabric</option>
+                    <option value="iosefin">Iosefin</option>
+                    <option value="girocului">Girocului</option>
+                  </select>
+                </label>
+                <label>
+                  Adresa preluare
+                  <input name="pickupAddress" id="pickupAddress" required value="Piata Unirii 4, Timisoara">
+                </label>
+              </div>
+
+              <div class="split">
+                <label>
+                  Serviciu
+                  <select name="serviceId" id="serviceSelect" required></select>
+                </label>
+                <label>
+                  Interval
+                  <select name="slot" required>
+                    <option>Astazi 10:00-12:00</option>
+                    <option>Astazi 13:00-15:00</option>
+                    <option>Maine 09:00-11:00</option>
+                    <option>Maine 16:00-18:00</option>
+                  </select>
+                </label>
+              </div>
+
+              <section class="subsection">
+                <div class="subsection-heading">
+                  <div>
+                    <p class="eyebrow">Plata card</p>
+                    <h3>Checkout securizat extern</h3>
+                  </div>
+                  <span class="status-pill" data-tone="blue">Fara date card in app</span>
+                </div>
+                <label>
+                  Provider plata
+                  <select name="paymentProvider" id="paymentProvider" required>
+                    <option value="netopia-bt-pay">NETOPIA / Pay with BT Pay</option>
+                  </select>
+                </label>
+                <div class="netopia-trust">
+                  <strong>NETOPIA Payments</strong>
+                  <span>Visa</span>
+                  <span>Mastercard</span>
+                  <span>BT Pay</span>
+                </div>
+                <p class="legal-note">MVP-ul simuleaza redirectarea catre NETOPIA. In productie, cardul se introduce doar in pagina securizata NETOPIA, cu 3D Secure/SCA si tokenizare.</p>
+              </section>
+
+              <section class="subsection">
+                <div class="subsection-heading">
+                  <div>
+                    <p class="eyebrow">Recunoastere documente</p>
+                    <h3>Validare inainte de comanda</h3>
+                  </div>
+                  <span id="documentGateBadge" class="status-pill" data-tone="red">Incomplet</span>
+                </div>
+                <div class="document-grid">
+                  <label class="upload-card">
+                    Talon fata
+                    <input name="registrationFrontDoc" id="registrationFrontDoc" type="file" accept="image/*" required>
+                    <span id="registrationFrontDocStatus" class="doc-status">Neincarcat</span>
+                  </label>
+                  <label class="upload-card">
+                    Talon verso
+                    <input name="registrationBackDoc" id="registrationBackDoc" type="file" accept="image/*" required>
+                    <span id="registrationBackDocStatus" class="doc-status">Neincarcat</span>
+                  </label>
+                  <label class="upload-card">
+                    Permis fata
+                    <input name="licenseFrontDoc" id="licenseFrontDoc" type="file" accept="image/*" required>
+                    <span id="licenseFrontDocStatus" class="doc-status">Neincarcat</span>
+                  </label>
+                  <label class="upload-card">
+                    Permis verso
+                    <input name="licenseBackDoc" id="licenseBackDoc" type="file" accept="image/*" required>
+                    <span id="licenseBackDocStatus" class="doc-status">Neincarcat</span>
+                  </label>
+                  <label class="upload-card">
+                    RCA / asigurare
+                    <input name="insuranceDoc" id="insuranceDoc" type="file" accept="image/*,.pdf" required>
+                    <span id="insuranceDocStatus" class="doc-status">Neincarcat</span>
+                  </label>
+                  <label class="upload-card" id="authorizationUploadCard">
+                    Imputernicire proprietar
+                    <input name="authorizationDoc" id="authorizationDoc" type="file" accept="image/*,.pdf">
+                    <span id="authorizationDocStatus" class="doc-status">Optional</span>
+                  </label>
+                </div>
+                <p class="legal-note">Pozele trebuie facute fara folie, fara reflexii puternice, fara huse, adaosuri sau obiecte care acopera documentul.</p>
+                <div id="documentExtract" class="extract-box">
+                  Incarca documentele pentru extragere demo: talon fata/verso, permis fata/verso, RCA si imputernicire daca numele proprietarului din talon difera de solicitant.
+                </div>
+              </section>
+
+              <section class="subsection">
+                <div class="subsection-heading">
+                  <div>
+                    <p class="eyebrow">Acord legal</p>
+                    <h3>Luare la cunostinta riscuri</h3>
+                  </div>
+                  <span id="riskGateBadge" class="status-pill" data-tone="red">Nesemnat</span>
+                </div>
+                <label class="checkbox-line">
+                  <input name="riskMandate" type="checkbox" required>
+                  Imputernicesc operatorul desemnat sa preia, conduca si returneze vehiculul exclusiv pentru serviciul comandat.
+                </label>
+                <label class="checkbox-line">
+                  <input name="riskInsurance" type="checkbox" required>
+                  Confirm ca vehiculul are RCA, ITP, certificat de inmatriculare valid si ca soferul are permis categoria B.
+                </label>
+                <label class="checkbox-line">
+                  <input name="riskAuthorization" type="checkbox" required>
+                  Confirm ca, daca solicitantul nu este proprietarul din documente, exista imputernicire legala pentru predarea vehiculului.
+                </label>
+                <label class="checkbox-line">
+                  <input name="riskInspection" type="checkbox" required>
+                  Accept filmarea video 360 la preluare si retur, extragerea cadrelor relevante si pastrarea dovezilor timp de 30 de zile.
+                </label>
+                <label class="checkbox-line">
+                  <input name="riskData" type="checkbox" required>
+                  Accept prelucrarea documentelor, fotografiilor si video-urilor masinii pentru executarea comenzii, audit operational si solutionarea disputelor.
+                </label>
+                <p class="legal-note">Text demonstrativ pentru MVP. In productie, documentul trebuie verificat de avocat si semnat electronic.</p>
+              </section>
+
+              <label>
+                Observatii masina
+                <textarea name="notes" rows="3">Zgarietura mica pe bara fata. Cheia se preda direct operatorului.</textarea>
+              </label>
+
+              <button id="submitOrderButton" class="primary-action" type="submit" disabled>Plaseaza comanda</button>
+            </form>
+
+            <div class="stacked-panels">
+              <div class="panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Harta Timisoara</p>
+                    <h2>Spalatorii, preturi si ETA</h2>
+                  </div>
+                  <span id="selectedPartnerBadge" class="badge">Recomandat</span>
+                </div>
+                <div class="map-locator">
+                  <div id="dispatchMap" class="dispatch-map" aria-label="Harta operationala Timisoara"></div>
+                  <div class="map-search-panel">
+                    <p class="eyebrow">Gaseste spalatoria potrivita</p>
+                    <h3>Preluare, pret si timp estimat</h3>
+                    <p class="legal-note">Cauta dupa zona sau foloseste locatia salvata in formular. Pentru MVP, cautarea schimba zona de preluare in Timisoara.</p>
+                    <label>
+                      Cauta zona
+                      <input id="mapSearchInput" type="search" placeholder="Cetate, Fabric, Iosefin, Girocului">
+                    </label>
+                    <button id="useLocationButton" class="primary-action" type="button">Foloseste locatia mea</button>
+                    <div id="mapStats" class="map-stats"></div>
+                  </div>
+                </div>
+                <div id="partnerCompare" class="partner-compare"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Status live</p>
+                    <h2>Comenzile mele</h2>
+                  </div>
+                </div>
+                <div id="clientOrders" class="order-list"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="courierView" class="view" aria-labelledby="courierTitle">
+          <div class="mobile-layout">
+            <div class="phone-frame">
+              <div class="phone-header">
+                <div>
+                  <p class="eyebrow">Operator</p>
+                  <h2 id="courierTitle">Curse disponibile</h2>
+                </div>
+                <span class="battery">92%</span>
+              </div>
+              <div id="courierJobs" class="job-stack"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Checklist</p>
+                  <h2>Preluare sigura</h2>
+                </div>
+              </div>
+              <ul class="checklist">
+                <li>Verifica permisul si identitatea operatorului inainte de preluare.</li>
+                <li>Verifica RCA si certificatul de inmatriculare in aplicatie.</li>
+                <li>Filmeaza masina 360 la preluare si retur, fara taieturi, cu toate laturile, colturile si rotile vizibile.</li>
+                <li>Verifica in aplicatie cadrele extrase automat din video.</li>
+                <li>Noteaza kilometrajul si nivelul aproximativ de combustibil.</li>
+                <li>Confirma acordul clientului inainte de a pleca.</li>
+                <li>Raporteaza imediat orice dauna sau intarziere.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="adminView" class="view" aria-labelledby="adminTitle">
+          <div class="metric-grid">
+            <div class="metric">
+              <span>Comenzi active</span>
+              <strong id="activeOrdersMetric">0</strong>
+            </div>
+            <div class="metric">
+              <span>Venit estimat</span>
+              <strong id="revenueMetric">0 lei</strong>
+            </div>
+            <div class="metric">
+              <span>Operatori disponibili</span>
+              <strong>3</strong>
+            </div>
+            <div class="metric">
+              <span>Parteneri</span>
+              <strong>3</strong>
+            </div>
+          </div>
+
+          <div class="panel incident-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Procedura incident</p>
+                <h2>Protocol rapid dispecer</h2>
+              </div>
+              <span class="badge">P0-P3</span>
+            </div>
+            <div id="incidentProcedure" class="incident-grid"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Admin</p>
+                <h2 id="adminTitle">Control operational</h2>
+              </div>
+              <button id="seedButton" class="secondary-action" type="button">Adauga scenariu pilot</button>
+            </div>
+            <div id="adminOrders" class="admin-table"></div>
+          </div>
+        </section>
+
+        <section id="partnerView" class="view" aria-labelledby="partnerTitle">
+          <div class="content-grid">
+            <div class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Spalatorie partenera</p>
+                  <h2 id="partnerTitle">Masini programate</h2>
+                </div>
+              </div>
+              <div id="partnerOrders" class="order-list"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Capacitate</p>
+                  <h2>Parteneri activi</h2>
+                </div>
+              </div>
+              <div id="partnerList" class="partner-list"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="emptyStateTemplate">
+      <div class="empty-state">
+        <strong>Nu exista comenzi aici inca.</strong>
+        <span>Creeaza o comanda sau adauga scenariul pilot din admin.</span>
+      </div>
+    </template>
+
+    <div id="mediaModal" class="media-modal" hidden>
+      <div class="media-modal-backdrop" data-media-close></div>
+      <section class="media-modal-panel" role="dialog" aria-modal="true" aria-labelledby="mediaModalTitle">
+        <header>
+          <div>
+            <p class="eyebrow">Admin media</p>
+            <h2 id="mediaModalTitle">Dovezi comanda</h2>
+          </div>
+          <button class="compact-action" type="button" data-media-close>Inchide</button>
+        </header>
+        <div id="mediaModalBody" class="media-modal-body"></div>
+      </section>
+    </div>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
